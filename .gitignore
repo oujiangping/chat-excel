@@ -1,0 +1,28 @@
+# 系统文件
+.DS_Store
+Thumbs.db
+
+.idea/
+
+# Python虚拟环境
+venv/
+.venv/
+env/
+.conda/
+
+# 日志文件
+*.log
+
+# 缓存文件
+__pycache__/
+
+# 数据文件备份
+*.bak
+*.tmp
+
+# 配置文件（如果包含敏感信息）
+config.ini
+.env
+
+# 自动生成的文件（如果有）
+generated/
