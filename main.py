@@ -1,7 +1,7 @@
 import asyncio
 import io
 import os
-
+import gradio as gr
 import pandas as pd
 from llama_index.core.agent.workflow import FunctionAgent, AgentWorkflow, ToolCallResult, AgentOutput, ToolCall
 from llama_index.core.base.llms.types import LLMMetadata, MessageRole
@@ -16,9 +16,9 @@ from tools.quickchart_tool import generate_bar_chart, generate_pie_chart
 
 CONTEXT_WINDOW = 128000
 
-print("所有环境变量：")
-for key, value in os.environ.items():
-    print(f"{key}: {value}")
+# print("所有环境变量：")
+# for key, value in os.environ.items():
+#     print(f"{key}: {value}")
 
 # 如果没有设置环境变量，报错
 if "OPENAI_API_BASE" not in os.environ:
@@ -137,18 +137,18 @@ analyze_agent = FunctionAgent(
         # 表格分析助手
         ## 功能描述
         你是一个专业的表格统计分析建议生成助手，也是数据洞察助手，擅长输出数据报告。
-        
+
         ## 工具使用说明
         # 表格分析助手
         ## 功能描述
         你是一个专业的表格统计分析建议生成助手，也是数据洞察助手，擅长输出数据报告。
-        
+
         ## 工具使用说明
         -  get_excel_info 工具获取pandasql表格信息和表名可。
         - generate_bar_chart 工具用于生成条形图，generate_pie_chart 工具用于生成饼图，返回图片url请你自己插入正文
         - 对于分析的数据你应该考虑调用图形工具去生成图片并插入正文
         - run_sql_queries 工具用于执行 SQL 查询，返回查询结果。
-        
+
         ## 注意事项
         - 根据用户提出的问题进行分析，生成严格遵守 SQLite3 SQL 规范的语句（可生成多条），避免执行出错。
         - 单个 SQL 查询语句的最大返回条数需控制在 20 条以内，防止单个查询返回过多数据。
@@ -156,7 +156,7 @@ analyze_agent = FunctionAgent(
         - 注意每次执行前你都应该先调用 `get_excel_info` 工具获取表格信息，当发生sql错误时你更加应该重新调用工具获取表信息，然后再根据表格信息生成sql语句。
         - 你应该正确的考虑使用什么图形化工具去生成图片（条形图好还是饼图好），不要一个劲的只使用一种。
         - 由于字段名会有空格，所以你需要使用反引号包裹字段名。
-        
+
         # 输出要求
         - 仅回答与表格相关的问题，对于表格无关的问题请直接拒绝回答。
         - 依据表格中的数据，生成有针对性的统计分析建议。
@@ -172,74 +172,99 @@ analyze_agent = FunctionAgent(
 )
 
 
-# 定义主函数
-async def main():
-    """
-    主函数，负责读取 Excel 文件，处理用户输入的问题。
-    """
+async def analyze_question(question):
+    agent_workflow = AgentWorkflow(
+        agents=[analyze_agent],
+        root_agent=analyze_agent.name,
+    )
+
+    handler = agent_workflow.run(
+        user_msg=question,
+        memory=chat_memory
+    )
+    current_agent = None
+    current_tool_calls = ""
+    final_output = "--------------------------------------------------\n"
+    async for event in handler.stream_events():
+        if (
+                hasattr(event, "current_agent_name")
+                and event.current_agent_name != current_agent
+        ):
+            current_agent = event.current_agent_name
+            print(f"\n{'=' * 50}")
+            print(f"🤖 Agent: {current_agent}")
+            print(f"{'=' * 50}\n")
+        elif isinstance(event, AgentOutput):
+            if event.response.content:
+                print("📤 Output:", event.response.content)
+                final_output += event.response.content
+            if event.tool_calls:
+                print(
+                    "🛠️  Planning to use tools:",
+                    [call.tool_name for call in event.tool_calls],
+                )
+        elif isinstance(event, ToolCallResult):
+            print(f"🔧 Tool Result ({event.tool_name}):")
+            print(f"  Arguments: {event.tool_kwargs}")
+            print(f"  Output: {event.tool_output}")
+        elif isinstance(event, ToolCall):
+            print(f"🔨 Calling Tool: {event.tool_name}")
+            print(f"  With arguments: {event.tool_kwargs}")
+    return final_output
+
+
+def load_excel(file):
     global sheets_db
+    # 清除之前加载的数据
+    # 清除 sheets_db
+    sheets_db.clear()
+    # 清除动态创建的全局变量
+    table_names = list(get_all_table_names())
+    for name in table_names:
+        if name in globals():
+            del globals()[name]
+
     # 读取 Excel 文件
-    # file_path = input("请输入 Excel 文件的路径: ")
-    file_path = "data/SuperStoreUS-2015.xlsx"
-    sheets_db = pd.read_excel(file_path, sheet_name=None)
-    print(f"成功加载 {len(sheets_db)} 个工作表: {', '.join(get_all_table_names())}")
-    # 验证表格规范性（可选）
-    for sheet_name, df in sheets_db.items():
-        if not is_regular_table(df):
-            print(f"警告：工作表 {sheet_name} 包含不规则格式,停止解析")
+    try:
+        sheets_db = pd.read_excel(file.name, sheet_name=None)
+        print(f"成功加载 {len(sheets_db)} 个工作表: {', '.join(get_all_table_names())}")
+        # 验证表格规范性（可选）
+        for sheet_name, df in sheets_db.items():
+            if not is_regular_table(df):
+                print(f"警告：工作表 {sheet_name} 包含不规则格式,停止解析")
 
-    # 将字典中的 DataFrame 分配变量名（例如表名）
-    for sheet_name, df in sheets_db.items():
-        globals()[sheet_name] = df  # 动态创建变量（如 orders、customers）
-    info_str = get_excel_info()
-    # 打印 DataFrame 的信息和前几行数据
-    print(info_str)
-    while True:
-        question = input("请输入问题（输入 'exit' 退出）: ")
-        if question.lower() == 'exit':
-            break
+        # 将字典中的 DataFrame 分配变量名（例如表名）
+        for sheet_name, df in sheets_db.items():
+            globals()[sheet_name] = df  # 动态创建变量（如 orders、customers）
+        info_str = get_excel_info()
+        # 打印 DataFrame 的信息和前几行数据
+        print(info_str)
+        return "Excel 文件已成功加载。"
+    except Exception as e:
+        return f"加载文件时出错: {e}"
 
-        agent_workflow = AgentWorkflow(
-            agents=[analyze_agent],
-            root_agent=analyze_agent.name,
-        )
 
-        # draw_all_possible_flows(agent_workflow, filename="basic_workflow.html")
+with gr.Blocks() as excel_view:
+    gr.Markdown("### Excel 表格分析系统")
+    with gr.Row():
+        with gr.Column():
+            file_input = gr.File(label="选择 Excel 文件")
+            load_output = gr.Textbox(label="文件加载结果")
+            question_input = gr.Textbox(label="请输入问题", placeholder="输入你的问题")
+        with gr.Column():
+            answer_output = gr.Markdown(label="分析结果")
+            # Replace Spinner with a hidden textbox to simulate loading state
+            loading_indicator = gr.Textbox(visible=False, value="Loading...")
 
-        handler = agent_workflow.run(
-            user_msg=question,
-            memory=chat_memory
-        )
-        current_agent = None
-        current_tool_calls = ""
-        final_output = "--------------------------------------------------\n"
-        async for event in handler.stream_events():
-            if (
-                    hasattr(event, "current_agent_name")
-                    and event.current_agent_name != current_agent
-            ):
-                current_agent = event.current_agent_name
-                print(f"\n{'=' * 50}")
-                print(f"🤖 Agent: {current_agent}")
-                print(f"{'=' * 50}\n")
-            elif isinstance(event, AgentOutput):
-                if event.response.content:
-                    print("📤 Output:", event.response.content)
-                    final_output += event.response.content
-                if event.tool_calls:
-                    print(
-                        "🛠️  Planning to use tools:",
-                        [call.tool_name for call in event.tool_calls],
-                    )
-            elif isinstance(event, ToolCallResult):
-                print(f"🔧 Tool Result ({event.tool_name}):")
-                print(f"  Arguments: {event.tool_kwargs}")
-                print(f"  Output: {event.tool_output}")
-            elif isinstance(event, ToolCall):
-                print(f"🔨 Calling Tool: {event.tool_name}")
-                print(f"  With arguments: {event.tool_kwargs}")
-        print(final_output)
+    file_input.upload(load_excel, inputs=file_input, outputs=load_output)
+    # Modify the submit call to add loading state control
+    question_input.submit(
+        fn=analyze_question,
+        inputs=question_input,
+        outputs=answer_output,
+        queue=True
+    )
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    excel_view.launch()
