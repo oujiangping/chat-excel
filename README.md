@@ -1,7 +1,7 @@
-# Excel-Agent 项目
+# Chat-Excel 项目
 
 ## 项目介绍
-此仓库 `excel-agent` 是一个基于Python使用了LLamaIndex实现的项目，旨在借助大语言模型处理Excel数据。它能读取Excel文件，将各工作表加载为 `DataFrame`。用户可输入问题，项目会利用代理生成SQL查询，对Excel数据开展统计分析。
+此仓库 `chat-excel` 是一个基于Python使用了LLamaIndex实现的项目，旨在借助大语言模型处理Excel数据。它能读取Excel文件，将各工作表加载为 `DataFrame`。用户可输入问题，项目会利用代理生成SQL查询，对Excel数据开展统计分析。
 
 ## 主要功能
 - 读取Excel文件，加载工作表数据。
