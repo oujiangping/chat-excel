@@ -8,6 +8,8 @@
 - 借助 `FunctionAgent` 分析用户问题，生成SQL查询。
 - 批量执行SQL查询，返回分析结果。
 - 验证表格规范性，避免不规则格式数据影响分析。
+- 支持多工作表查询。
+- 支持Markdown格式导出，可以用Markdown编辑器打开和转换。
 
 ## 输出示例
 截图如下:
@@ -29,6 +31,11 @@
 ```bash
 pip install -r requirements.txt
 ```
+requirements.txt的生成命令:
+```bash
+pipreqs ./ --encoding=utf8 --force
+```
+
 ### 运行项目
 ```bash
 python main.py
@@ -37,3 +44,8 @@ python main.py
 - 确保Excel文件路径正确。
 - 确保文件规范性，避免数据格式错误，不允许合并单元格。
 - 确保正确设置了环境变量。
+
+## todo
+- 支持非正规表格数据处理
+- 优化交互界面体验
+- 支持更多的功能

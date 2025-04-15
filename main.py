@@ -1,7 +1,6 @@
 import asyncio
 import io
 import os
-import gradio as gr
 import pandas as pd
 from llama_index.core.agent.workflow import FunctionAgent, AgentWorkflow, ToolCallResult, AgentOutput, ToolCall
 from llama_index.core.base.llms.types import LLMMetadata, MessageRole
@@ -9,7 +8,9 @@ from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.llms.openai import OpenAI
 from pandasql import sqldf
+import gradio as gr
 
+from export_tools import export_to_markdown
 from tools.quickchart_tool import generate_bar_chart, generate_pie_chart
 
 # logging.basicConfig(level="DEBUG")
@@ -45,6 +46,8 @@ class OpenAILikeLLM(OpenAI):
 llm = OpenAILikeLLM(model=OPENAI_MODEL_NAME, api_base=OPENAI_API_BASE, api_key=OPENAI_API_KEY)
 
 sheets_db = {}  # {sheet_name: DataFrame}
+# 是否上传了文档
+is_uploaded = False
 
 
 def get_all_table_names():
@@ -136,7 +139,7 @@ analyze_agent = FunctionAgent(
         """
         # 表格分析助手
         ## 功能描述
-        你是一个专业的表格统计分析建议生成助手，也是数据洞察助手，擅长输出数据报告。
+        你是一个专业的表格统计分析建议生成助手，也是数据洞察助手，擅长输出图文并茂的数据报告。
 
         ## 工具使用说明
         # 表格分析助手
@@ -148,6 +151,7 @@ analyze_agent = FunctionAgent(
         - generate_bar_chart 工具用于生成条形图，generate_pie_chart 工具用于生成饼图，返回图片url请你自己插入正文
         - 对于分析的数据你应该考虑调用图形工具去生成图片并插入正文
         - run_sql_queries 工具用于执行 SQL 查询，返回查询结果。
+        - 请你一定要使用图片工具去生成图片，不要自己乱生成。
 
         ## 注意事项
         - 根据用户提出的问题进行分析，生成严格遵守 SQLite3 SQL 规范的语句（可生成多条），避免执行出错。
@@ -156,6 +160,7 @@ analyze_agent = FunctionAgent(
         - 注意每次执行前你都应该先调用 `get_excel_info` 工具获取表格信息，当发生sql错误时你更加应该重新调用工具获取表信息，然后再根据表格信息生成sql语句。
         - 你应该正确的考虑使用什么图形化工具去生成图片（条形图好还是饼图好），不要一个劲的只使用一种。
         - 由于字段名会有空格，所以你需要使用反引号包裹字段名。
+        - 所有的数据和图表应该都是采用工具得出，不能自己乱编造。
 
         # 输出要求
         - 仅回答与表格相关的问题，对于表格无关的问题请直接拒绝回答。
@@ -163,6 +168,7 @@ analyze_agent = FunctionAgent(
         - 针对每个数据如果能够生成条形图应该都去调用一次工具去生成图片
         - 输出报告面向普通用户，sql语句只是你的工具功能，禁止报告中出现sql语句
         - 输出数据报告用Markdown格式，要图文并茂。
+        - 不能无中生有乱造数据和图片。
         """
 
     ),
@@ -173,6 +179,10 @@ analyze_agent = FunctionAgent(
 
 
 async def analyze_question(question):
+    global is_uploaded
+    if not is_uploaded:
+        gr.Warning("请先上传Excel文件")
+        return "请先上传Excel文件"
     agent_workflow = AgentWorkflow(
         agents=[analyze_agent],
         root_agent=analyze_agent.name,
@@ -184,7 +194,7 @@ async def analyze_question(question):
     )
     current_agent = None
     current_tool_calls = ""
-    final_output = "--------------------------------------------------\n"
+    final_output = ""
     async for event in handler.stream_events():
         if (
                 hasattr(event, "current_agent_name")
@@ -214,6 +224,7 @@ async def analyze_question(question):
 
 
 def load_excel(file):
+    global is_uploaded
     global sheets_db
     # 清除之前加载的数据
     # 清除 sheets_db
@@ -229,9 +240,12 @@ def load_excel(file):
         sheets_db = pd.read_excel(file.name, sheet_name=None)
         print(f"成功加载 {len(sheets_db)} 个工作表: {', '.join(get_all_table_names())}")
         # 验证表格规范性（可选）
-        for sheet_name, df in sheets_db.items():
-            if not is_regular_table(df):
-                print(f"警告：工作表 {sheet_name} 包含不规则格式,停止解析")
+        # for sheet_name, df in sheets_db.items():
+        #     if not is_regular_table(df):
+        #         print(f"警告：工作表 {sheet_name} 包含不规则格式,停止解析")
+        #         is_uploaded = False
+        #         gr.Warning(f"警告：工作表 {sheet_name} 包含不规则格式,停止解析")
+        #         return f"警告：工作表 {sheet_name} 包含不规则格式,停止解析"
 
         # 将字典中的 DataFrame 分配变量名（例如表名）
         for sheet_name, df in sheets_db.items():
@@ -239,8 +253,11 @@ def load_excel(file):
         info_str = get_excel_info()
         # 打印 DataFrame 的信息和前几行数据
         print(info_str)
+        is_uploaded = True
         return "Excel 文件已成功加载。"
     except Exception as e:
+        is_uploaded = False
+        gr.Warning(f"加载文件时出错: {e}")
         return f"加载文件时出错: {e}"
 
 
@@ -255,6 +272,13 @@ with gr.Blocks() as excel_view:
             answer_output = gr.Markdown(label="分析结果")
             # Replace Spinner with a hidden textbox to simulate loading state
             loading_indicator = gr.Textbox(visible=False, value="Loading...")
+            # 添加 文件 导出按钮
+            export_button = gr.Button("导出为 Markdown")
+            export_button.click(
+                fn=export_to_markdown,
+                inputs=answer_output,
+                outputs=gr.File(label="导出的 Markdown 文件")
+            )
 
     file_input.upload(load_excel, inputs=file_input, outputs=load_output)
     # Modify the submit call to add loading state control
@@ -264,7 +288,6 @@ with gr.Blocks() as excel_view:
         outputs=answer_output,
         queue=True
     )
-
 
 if __name__ == "__main__":
     excel_view.launch()
