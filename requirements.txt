@@ -5,3 +5,4 @@ mistletoe==1.4.0
 pandas==2.2.3
 pandasql==0.7.3
 quickchart==0.0.1
+xlrd>=2.0.1
