@@ -73,7 +73,8 @@ async def run_sql_queries(queries: list[str]):
             sql_result = sqldf(query, get_global()).to_csv(sep='\t', na_rep='nan')
             results += f"query: {query}, result: {sql_result}\n\n----------"
         except Exception as e:
-            print(f"执行 SQL 查询时出错: {e}")
+
+            print(f"执行 SQL 查询时出错: {e}\n\n 现在我再次给你表格信息 {get_excel_info_head(sheets_db)}")
             results += f"query: {query}, result: 执行 SQL 查询时出错。{e}\n\n----------"
     return results
 
