@@ -69,8 +69,9 @@ def test_run_sql_queries(db):
     for sheet_name, df in db.items():
         try:
             print("开始测试表：", sheet_name)
-            result = run_sql_queries([f"select * from {sheet_name} limit 1"])
-            print(f"结束测试表：{sheet_name}，结果：{result}")
+            query = f"select * from {sheet_name} limit 1"
+            sql_result = sqldf(query, sheets_db).to_csv(sep='\t', na_rep='nan')
+            print(f"结束测试表：{sheet_name}，结果：{sql_result}")
         except Exception as e:
             print(f"测试表：{sheet_name} 时出错: {e}")
             return False
