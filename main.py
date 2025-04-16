@@ -3,12 +3,13 @@ import pandas as pd
 from llama_index.core.agent.workflow import FunctionAgent, AgentWorkflow, ToolCallResult, AgentOutput, ToolCall
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.storage.chat_store import SimpleChatStore
+from openpyxl import load_workbook
 
 from export_tools import export_to_markdown
 from openai_like_llm import OpenAILikeLLM, OPENAI_MODEL_NAME, OPENAI_API_BASE, OPENAI_API_KEY
-from tools.table_tool import run_sql_queries, clear_sheets_db, set_sheets_db, get_excel_info_tool, \
-    get_all_table_names, get_sheets_db, get_global, is_regular_table
 from tools.quickchart_tool import generate_bar_chart, generate_pie_chart
+from tools.table_tool import run_sql_queries, clear_sheets_db, set_sheets_db, get_excel_info_tool, \
+    get_all_table_names, get_sheets_db, is_regular_table, test_run_sql_queries
 
 # logging.basicConfig(level="DEBUG")
 
@@ -126,30 +127,87 @@ def load_excel(file):
     # 清除动态创建的全局变量
     table_names = list(get_all_table_names(get_sheets_db()))
     print(table_names)
-    for name in table_names:
-        if name in get_sheets_db():
-            try:
-                del get_global()[name]
-            except KeyError:
-                pass
     clear_sheets_db()
 
-    # 读取 Excel 文件
-    sheets_db = pd.read_excel(file.name, sheet_name=None)
-    set_sheets_db(sheets_db)
-    print(f"成功加载 {len(sheets_db)} 个工作表: {', '.join(get_all_table_names(sheets_db))}")
+    # 使用 openpyxl 加载 Excel 文件
+    wb = load_workbook(file.name)
+    sheets_db = {}
+    for sheet_name in wb.sheetnames:
+        sheet = wb[sheet_name]
+        merged_regions = []
 
-    # 将字典中的 DataFrame 分配变量名（例如表名）
-    for sheet_name, df in sheets_db.items():
-        get_global()[sheet_name] = df  # 动态创建变量（如 orders、customers）
+        # 收集所有合并区域信息（左上角坐标和区域范围）
+        for merged_range in sheet.merged_cells.ranges:
+            min_row, max_row = merged_range.min_row, merged_range.max_row
+            min_col, max_col = merged_range.min_col, merged_range.max_col
+            top_left_value = sheet.cell(row=min_row, column=min_col).value
+            merged_regions.append({
+                'min_row': min_row,
+                'max_row': max_row,
+                'min_col': min_col,
+                'max_col': max_col,
+                'value': top_left_value
+            })
+
+        # 检查是否是空表（至少需要两行数据：标题行+数据行）
+        if sheet.max_row <= 1:
+            print(f"表 {sheet_name} 数据不足，拒绝加载。")
+            continue
+
+        # 构建处理后的数据矩阵
+        data_matrix = []
+        for row_idx in range(1, sheet.max_row + 1):
+            row_data = []
+            for col_idx in range(1, sheet.max_column + 1):
+                cell_value = None
+                # 检查当前单元格是否属于某个合并区域
+                for region in merged_regions:
+                    if (region['min_row'] <= row_idx <= region['max_row'] and
+                            region['min_col'] <= col_idx <= region['max_col']):
+                        cell_value = region['value']
+                        break  # 找到所属区域后停止搜索
+                if cell_value is None:
+                    cell = sheet.cell(row=row_idx, column=col_idx)
+                    cell_value = cell.value
+                row_data.append(cell_value)
+            data_matrix.append(row_data)
+
+        # 提取标题和数据
+        headers = data_matrix[0]
+        data_rows = data_matrix[1:]
+
+        # 转换为DataFrame
+        df = pd.DataFrame(data_rows, columns=headers)
+
+        markdown_text = df.to_markdown()
+        print(markdown_text)
+
         if not is_regular_table(df):
             print(f"表 {sheet_name} 不是正规表格，拒绝加载。")
             gr.Warning(f"表 {sheet_name} 不是正规表格，拒绝加载。")
-            return f"表 {sheet_name} 不是正规表格，拒绝加载。"
+            continue
+        else:
+            sheets_db[sheet_name] = df
+            print(f"成功加载表 {sheet_name}，行数: {len(df)}")
+
+        if not test_run_sql_queries(sheets_db):
+            print(f"表 {sheet_name} 测试执行失败，拒绝加载。")
+            gr.Warning(f"表 {sheet_name} 测试执行失败，拒绝加载。")
+            return "表 {sheet_name} 测试执行失败，拒绝加载。"
+
+    if not sheets_db:
+        gr.Warning("没有找到正规表格，拒绝加载。")
+        print("没有找到正规表格，拒绝加载。")
+        return "没有找到正规表格，拒绝加载。"
+
+    set_sheets_db(sheets_db)
+    print(f"成功加载 {len(sheets_db)} 个工作表: {', '.join(get_all_table_names(sheets_db))}")
+
     info_str = get_excel_info_tool()
     # 打印 DataFrame 的信息和前几行数据
     print(info_str)
     is_uploaded = True
+
     return "Excel 文件已成功加载。"
 
 

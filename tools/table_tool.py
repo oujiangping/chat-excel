@@ -13,8 +13,8 @@ sheets_db = {}  # {sheet_name: DataFrame}
 
 
 def is_regular_table(df):
-    # markdown_text = df.to_markdown()
-    # print(markdown_text)
+    markdown_text = df.to_markdown()
+    print(markdown_text)
     if df.empty:
         print(f"包含空表")
         return False
@@ -22,12 +22,21 @@ def is_regular_table(df):
     # 取出第一行
     columns = df.columns.tolist()
     print(columns)
-    # 确保不包含 Unnamed
-    if any('Unnamed' in col for col in columns):
-        print(f"包含Unnamed列")
-        return False
+
+    # # 处理合并单元格
+    # df = df.ffill()
+
+    markdown_text = df.to_markdown()
+    print(markdown_text)
 
     return True
+
+
+# 合并单元格的函数
+def merge_cells(df):
+    # 合并行
+    df = df.ffill()
+    return df
 
 
 def get_all_table_names(db):
@@ -55,7 +64,20 @@ def get_excel_info_head(db):
     return description
 
 
-async def run_sql_queries(queries: list[str]):
+# 测试执行表是否有问题
+def test_run_sql_queries(db):
+    for sheet_name, df in db.items():
+        try:
+            print("开始测试表：", sheet_name)
+            result = run_sql_queries([f"select * from {sheet_name} limit 1"])
+            print(f"结束测试表：{sheet_name}，结果：{result}")
+        except Exception as e:
+            print(f"测试表：{sheet_name} 时出错: {e}")
+            return False
+    return True
+
+
+def run_sql_queries(queries: list[str]):
     """
     批量执行 SQL 查询并返回结果。
     参数:
@@ -67,13 +89,10 @@ async def run_sql_queries(queries: list[str]):
     results = ""
     for query in queries:
         try:
-            # 替换换行符为空格
-            # query = query.replace('\\\n', ' ')
             print(f"执行 SQL 查询: {query}")
-            sql_result = sqldf(query, get_global()).to_csv(sep='\t', na_rep='nan')
+            sql_result = sqldf(query, sheets_db).to_csv(sep='\t', na_rep='nan')
             results += f"query: {query}, result: {sql_result}\n\n----------"
         except Exception as e:
-
             print(f"执行 SQL 查询时出错: {e}\n\n 现在我再次给你表格信息 {get_excel_info_head(sheets_db)}")
             results += f"query: {query}, result: 执行 SQL 查询时出错。{e}\n\n----------"
     return results
@@ -107,11 +126,3 @@ def clear_sheets_db():
 def get_sheets_db():
     global sheets_db
     return sheets_db
-
-
-def set_global(key, value):
-    globals()[key] = value
-
-
-def get_global():
-    return globals()
