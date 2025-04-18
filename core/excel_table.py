@@ -30,7 +30,7 @@ class ExcelTable:
         """展示表格"""
         markdown_text = ""
         for sheet_name, df in self.sheets_db.items():
-            markdown_text += f"## 表格名称: {sheet_name}\n"
+            markdown_text += f"## 表格(sheet)名称: {sheet_name}\n"
             markdown_text += df.to_markdown() + "\n\n"
         return markdown_text
 
@@ -39,9 +39,7 @@ class ExcelTable:
         """展示表格"""
         markdown_text = ""
         for sheet_name, df in self.sheets_db.items():
-            print(f"## 表格名称: {sheet_name}")
-            print(df.head(100).to_markdown())
-            markdown_text += f"## 表格名称: {sheet_name}\n"
+            markdown_text += f"## 表格(sheet)名称: {sheet_name}\n"
             markdown_text += df.head(100).to_markdown() + "\n\n"
         return markdown_text
 

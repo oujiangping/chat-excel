@@ -24,7 +24,7 @@ def load_excel_from_file(file_path, merge_cells=False):
                 data.append(row)
             df = pd.DataFrame(data, columns=header)
             sheets_db[sheet_name] = df
-            return sheets_db
+        return sheets_db
     elif file_path.endswith('.xls'):
         # 使用 xlrd 打开 .xls 格式文件
         workbook = xlrd.open_workbook(file_path)

@@ -17,7 +17,7 @@ from core.excel_table import ExcelTable
 from openai_like_llm import OpenAILikeLLM, OPENAI_MODEL_NAME, OPENAI_API_BASE, OPENAI_API_KEY
 from tools.quickchart_tool import generate_bar_chart, generate_pie_chart
 
-logging.basicConfig(level="DEBUG")
+# logging.basicConfig(level="DEBUG")
 
 
 llm = OpenAILikeLLM(model=OPENAI_MODEL_NAME, api_base=OPENAI_API_BASE, api_key=OPENAI_API_KEY)
@@ -84,11 +84,12 @@ async def run_agent(user_question, markdown):
 
 if __name__ == '__main__':
     # 定义文件路径
-    file_path = "../data/学生视力表.xls"
+    file_path = "../data/SuperStoreUS-2015.xlsx"
 
     # 判断文件扩展名
     excel_table = ExcelTable(file_path, merge_cells=False)
-    markdown_text = excel_table.get_markdown()
+    markdown_text = excel_table.get_markdown_head()
+    print(markdown_text)
     question = "这个表格是什么类型的"
 
     asyncio.run(run_agent(question, markdown_text))

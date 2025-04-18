@@ -7,6 +7,7 @@
 """
 import io
 
+from llama_index.core.workflow import Context
 from pandasql import sqldf
 
 sheets_db = {}  # {sheet_name: DataFrame}
@@ -76,6 +77,14 @@ def test_run_sql_queries(db):
             print(f"测试表：{sheet_name} 时出错: {e}")
             return False
     return True
+
+
+async def get_table_data_to_markdown(ctx: Context):
+    """
+    获取表格信息与数据并返回结果，无需参数，返回表格数据和描述给智能体进行数据分析
+    """
+    excel_table = await ctx.get("table")
+    return excel_table.get_markdown()
 
 
 def run_sql_queries(queries: list[str]):

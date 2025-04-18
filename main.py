@@ -3,9 +3,12 @@ import pandas as pd
 from llama_index.core.agent.workflow import AgentWorkflow, ToolCallResult, AgentOutput, ToolCall
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.storage.chat_store import SimpleChatStore
+from llama_index.core.workflow import Context
 from openpyxl import load_workbook
 
 from agents.markdown_table_agent import MarkdownTableAgent
+from agents.router_agent import RouterAgent
+from core.excel_table import ExcelTable
 from export_tools import export_to_markdown
 from openai_like_llm import OpenAILikeLLM, OPENAI_MODEL_NAME, OPENAI_API_BASE, OPENAI_API_KEY
 from tools.table_tool import clear_sheets_db, set_sheets_db, get_excel_info_tool, \
@@ -15,9 +18,11 @@ from tools.table_tool import clear_sheets_db, set_sheets_db, get_excel_info_tool
 
 
 llm = OpenAILikeLLM(model=OPENAI_MODEL_NAME, api_base=OPENAI_API_BASE, api_key=OPENAI_API_KEY)
+llm_function = OpenAILikeLLM(model="qwen-max-latest", api_base=OPENAI_API_BASE, api_key=OPENAI_API_KEY)
 
 # 是否上传了文档
 is_uploaded = False
+excel_table = None
 
 chat_store = SimpleChatStore()
 chat_memory = ChatMemoryBuffer.from_defaults(
@@ -29,18 +34,30 @@ chat_memory = ChatMemoryBuffer.from_defaults(
 
 async def analyze_question(question):
     global is_uploaded
+    global excel_table
     if not is_uploaded:
         gr.Warning("请先上传Excel文件")
         return "请先上传Excel文件"
-    markdown_agent = MarkdownTableAgent(llm)
+    router_agent = RouterAgent(llm_function)
+    markdown_table_agent = MarkdownTableAgent(llm)
     agent_workflow = AgentWorkflow(
-        agents=[markdown_agent.get_agent()],
-        root_agent=markdown_agent.get_agent_name(),
+        agents=[router_agent.get_agent(), markdown_table_agent.get_agent()],
+        root_agent=router_agent.get_agent_name()
     )
 
+    ctx = Context(agent_workflow)
+    await ctx.set("table", excel_table)
+
     handler = agent_workflow.run(
-        user_msg=question,
-        memory=chat_memory
+        user_msg=f'''
+        ### 用户问题
+        {question}
+
+        ### 表格数据
+        {excel_table.get_markdown_head()}
+        ''',
+        memory=chat_memory,
+        ctx=ctx
     )
     current_agent = None
     final_output = ""
@@ -74,91 +91,17 @@ async def analyze_question(question):
 
 def load_excel(file):
     global is_uploaded
-    # 清除之前加载的数据
-    # 清除 sheets_db
-    # clear_sheets_db()
-    # 清除动态创建的全局变量
-    table_names = list(get_all_table_names(get_sheets_db()))
-    print(table_names)
+    global excel_table
     clear_sheets_db()
 
-    # 使用 openpyxl 加载 Excel 文件
-    wb = load_workbook(file.name)
     sheets_db = {}
-    for sheet_name in wb.sheetnames:
-        sheet = wb[sheet_name]
-        merged_regions = []
 
-        # 收集所有合并区域信息（左上角坐标和区域范围）
-        for merged_range in sheet.merged_cells.ranges:
-            min_row, max_row = merged_range.min_row, merged_range.max_row
-            min_col, max_col = merged_range.min_col, merged_range.max_col
-            top_left_value = sheet.cell(row=min_row, column=min_col).value
-            merged_regions.append({
-                'min_row': min_row,
-                'max_row': max_row,
-                'min_col': min_col,
-                'max_col': max_col,
-                'value': top_left_value
-            })
+    excel_table = ExcelTable(file)
+    print(excel_table.get_markdown_head())
 
-        # 检查是否是空表（至少需要两行数据：标题行+数据行）
-        if sheet.max_row <= 1:
-            print(f"表 {sheet_name} 数据不足，拒绝加载。")
-            continue
-
-        # 构建处理后的数据矩阵
-        data_matrix = []
-        for row_idx in range(1, sheet.max_row + 1):
-            row_data = []
-            for col_idx in range(1, sheet.max_column + 1):
-                cell_value = None
-                # 检查当前单元格是否属于某个合并区域
-                for region in merged_regions:
-                    if (region['min_row'] <= row_idx <= region['max_row'] and
-                            region['min_col'] <= col_idx <= region['max_col']):
-                        cell_value = region['value']
-                        break  # 找到所属区域后停止搜索
-                if cell_value is None:
-                    cell = sheet.cell(row=row_idx, column=col_idx)
-                    cell_value = cell.value
-                row_data.append(cell_value)
-            data_matrix.append(row_data)
-
-        # 提取标题和数据
-        headers = data_matrix[0]
-        data_rows = data_matrix[1:]
-
-        # 转换为DataFrame
-        df = pd.DataFrame(data_rows, columns=headers)
-
-        markdown_text = df.to_markdown()
-        print(markdown_text)
-
-        if not is_regular_table(df):
-            print(f"表 {sheet_name} 不是正规表格，拒绝加载。")
-            gr.Warning(f"表 {sheet_name} 不是正规表格，拒绝加载。")
-            continue
-        else:
-            sheets_db[sheet_name] = df
-            print(f"成功加载表 {sheet_name}，行数: {len(df)}")
-
-        if not test_run_sql_queries(sheets_db):
-            print(f"表 {sheet_name} 测试执行失败，拒绝加载。")
-            gr.Warning(f"表 {sheet_name} 测试执行失败，拒绝加载。")
-            return "表 {sheet_name} 测试执行失败，拒绝加载。"
-
-    if not sheets_db:
-        gr.Warning("没有找到正规表格，拒绝加载。")
-        print("没有找到正规表格，拒绝加载。")
-        return "没有找到正规表格，拒绝加载。"
-
-    set_sheets_db(sheets_db)
+    set_sheets_db(excel_table.get_sheets_db())
     print(f"成功加载 {len(sheets_db)} 个工作表: {', '.join(get_all_table_names(sheets_db))}")
 
-    info_str = get_excel_info_tool()
-    # 打印 DataFrame 的信息和前几行数据
-    print(info_str)
     is_uploaded = True
 
     return "Excel 文件已成功加载。"
