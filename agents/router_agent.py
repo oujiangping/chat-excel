@@ -7,7 +7,7 @@
 """
 from llama_index.core.agent.workflow import FunctionAgent, ReActAgent
 
-from core.agent import Agent
+from core.agent import BaseAgent
 
 
 def get_router_agent(llm):
@@ -51,7 +51,7 @@ def get_router_agent(llm):
     return agent
 
 
-class RouterAgent(Agent):
+class RouterAgent(BaseAgent):
     def __init__(self, llm):
         super().__init__(llm)
         self.agent = get_router_agent(llm)

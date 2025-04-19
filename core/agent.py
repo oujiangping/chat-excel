@@ -7,7 +7,7 @@
 """
 
 
-class Agent:
+class BaseAgent:
     def __init__(self, llm):
         self.llm = llm
         self.agent = None

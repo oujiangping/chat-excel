@@ -7,7 +7,7 @@
 """
 from llama_index.core.agent.workflow import FunctionAgent, ReActAgent
 
-from core.agent import Agent
+from core.agent import BaseAgent
 from tools.quickchart_tool import generate_bar_chart, generate_pie_chart
 from tools.table_tool import get_table_data_to_markdown
 
@@ -50,7 +50,7 @@ def get_markdown_table_agent(llm):
     return markdown_table_agent
 
 
-class MarkdownTableAgent(Agent):
+class MarkdownTableAgent(BaseAgent):
     def __init__(self, llm):
         super().__init__(llm)
         self.agent = get_markdown_table_agent(llm)
