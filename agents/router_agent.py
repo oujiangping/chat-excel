@@ -49,7 +49,7 @@ def get_router_agent(llm):
 
         ),
         tools=[get_table_head_data_to_markdown],
-        can_handoff_to=["markdown_table_agent"],
+        can_handoff_to=["markdown_table_agent", "sql_table_agent"],
         verbose=True
     )
     return agent

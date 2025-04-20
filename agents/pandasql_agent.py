@@ -7,19 +7,20 @@
 """
 from llama_index.core.agent.workflow import FunctionAgent
 
+from core.agent import BaseAgent
 from tools.quickchart_tool import generate_bar_chart, generate_pie_chart
 from tools.table_tool import run_sql_queries, get_excel_info_tool
 
 
-def get_pandasql_agent(llm):
+def get_sql_agent(llm):
     # 分析表格干什么的代理
-    analyze_agent = FunctionAgent(
-        name="pandasql_agent",
+    sql_table_agent = FunctionAgent(
+        name="sql_table_agent",
         llm=llm,
-        description="你是一个有用的用pandasql分析表格的助手",
+        description="你是一个有用的正规表格分析助手",
         system_prompt=(
             """
-            # 表格分析助手
+            # 正规表格分析助手
             ## 功能描述
             你是一个专业的利用pandasql分析表格，并给出分析报告，也是数据洞察助手，擅长输出图文并茂的数据报告。
 
@@ -52,3 +53,17 @@ def get_pandasql_agent(llm):
         tools=[run_sql_queries, get_excel_info_tool, generate_bar_chart, generate_pie_chart],
         verbose=True
     )
+    return sql_table_agent
+
+
+class SqlTableAgent(BaseAgent):
+    def __init__(self, llm):
+        super().__init__(llm)
+        self.agent = get_sql_agent(llm)
+        self.get_agent()
+
+    def get_agent(self):
+        return self.agent
+
+    def get_agent_name(self):
+        return self.agent.name

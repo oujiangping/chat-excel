@@ -10,8 +10,6 @@ import io
 from llama_index.core.workflow import Context
 from pandasql import sqldf
 
-sheets_db = {}  # {sheet_name: DataFrame}
-
 
 def is_regular_table(df):
     markdown_text = df.to_markdown()
@@ -95,7 +93,7 @@ async def get_table_head_data_to_markdown(ctx: Context):
     return excel_table.get_markdown_head()
 
 
-def run_sql_queries(queries: list[str]):
+async def run_sql_queries(ctx: Context, queries: list[str]):
     """
     批量执行 SQL 查询并返回结果。
     参数:
@@ -103,7 +101,8 @@ def run_sql_queries(queries: list[str]):
     返回:
     返回序列化的执行结果
     """
-    global sheets_db
+    excel_table = await ctx.get("table")
+    sheets_db = excel_table.get_sheets_db()
     results = ""
     for query in queries:
         try:
@@ -116,31 +115,17 @@ def run_sql_queries(queries: list[str]):
     return results
 
 
-def get_excel_info_tool():
+async def get_excel_info_tool(ctx: Context):
     """
     获取表格结构和示例数据
     返回:
     str: 获取表格结构和示例数据。
     """
-    global sheets_db
+    excel_table = await ctx.get("table")
+    sheets_db = excel_table.get_sheets_db()
     """
     获取表格结构和示例数据
     返回:
     str: 获取表格结构和示例数据。
     """
     return get_excel_info_head(sheets_db)
-
-
-def set_sheets_db(db):
-    global sheets_db
-    sheets_db = db
-
-
-def clear_sheets_db():
-    global sheets_db
-    sheets_db.clear()
-
-
-def get_sheets_db():
-    global sheets_db
-    return sheets_db

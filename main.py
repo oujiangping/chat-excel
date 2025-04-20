@@ -1,18 +1,16 @@
 import gradio as gr
-import pandas as pd
 from llama_index.core.agent.workflow import AgentWorkflow, ToolCallResult, AgentOutput, ToolCall
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.workflow import Context
-from openpyxl import load_workbook
 
 from agents.markdown_table_agent import MarkdownTableAgent
+from agents.pandasql_agent import SqlTableAgent
 from agents.router_agent import RouterAgent
 from core.excel_table import ExcelTable
 from export_tools import export_to_markdown
 from openai_like_llm import OpenAILikeLLM, OPENAI_MODEL_NAME, OPENAI_API_BASE, OPENAI_API_KEY
-from tools.table_tool import clear_sheets_db, set_sheets_db, get_excel_info_tool, \
-    get_all_table_names, get_sheets_db, is_regular_table, test_run_sql_queries
+from tools.table_tool import get_all_table_names
 
 # logging.basicConfig(level="DEBUG")
 
@@ -40,8 +38,9 @@ async def analyze_question(question):
         return "请先上传Excel文件"
     router_agent = RouterAgent(llm_function)
     markdown_table_agent = MarkdownTableAgent(llm)
+    sql_agent = SqlTableAgent(llm)
     agent_workflow = AgentWorkflow(
-        agents=[router_agent.get_agent(), markdown_table_agent.get_agent()],
+        agents=[router_agent.get_agent(), markdown_table_agent.get_agent(), sql_agent.get_agent()],
         root_agent=router_agent.get_agent_name()
     )
 
@@ -89,15 +88,11 @@ async def analyze_question(question):
 def load_excel(file):
     global is_uploaded
     global excel_table
-    clear_sheets_db()
-
-    sheets_db = {}
 
     excel_table = ExcelTable(file)
     print(excel_table.get_markdown_head())
 
-    set_sheets_db(excel_table.get_sheets_db())
-    print(f"成功加载 {len(sheets_db)} 个工作表: {', '.join(get_all_table_names(sheets_db))}")
+    print(f"成功加载 {len(excel_table.get_sheets_db())} 个工作表: {', '.join(get_all_table_names(excel_table.get_sheets_db()))}")
 
     is_uploaded = True
 
