@@ -9,11 +9,13 @@
 - 批量执行SQL查询，返回分析结果。
 - 验证表格规范性，避免不规则格式数据影响分析。
 - 支持多工作表查询。
+- 支持gradio界面，方便用户交互。
 - 支持Markdown格式导出，可以用Markdown编辑器打开和转换。、
 - 支持带有合并单元格的非正规表分析
 
 ## 输出示例
 截图如下:
+![gradio.png](asserts/gradio.png)
 
 ![img.png](asserts/img.png)
 
