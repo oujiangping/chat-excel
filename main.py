@@ -52,9 +52,6 @@ async def analyze_question(question):
         user_msg=f'''
         ### 用户问题
         {question}
-
-        ### 表格数据
-        {excel_table.get_markdown_head()}
         ''',
         memory=chat_memory,
         ctx=ctx

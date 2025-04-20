@@ -5,16 +5,17 @@
 *  @FileName:   markdown_table_agent.py
 **************************************
 """
-from llama_index.core.agent.workflow import FunctionAgent, ReActAgent
+from llama_index.core.agent.workflow import FunctionAgent
 
 from core.agent import BaseAgent
+from tools.analyze_tool import analyze_table
 from tools.quickchart_tool import generate_bar_chart, generate_pie_chart
 from tools.table_tool import get_table_data_to_markdown
 
 
 def get_markdown_table_agent(llm):
     # 分析表格干什么的代理
-    markdown_table_agent = ReActAgent(
+    markdown_table_agent = FunctionAgent(
         name="markdown_table_agent",
         llm=llm,
         description="你是一个有用的非正规表格分析助手。",
@@ -25,7 +26,8 @@ def get_markdown_table_agent(llm):
             你是一个专业的表格统计分析建议生成助手，也是数据洞察助手，擅长输出图文并茂的数据报告。
 
             ## 工具使用说明
-            - 使用get_table_data_to_markdown获取完整表格数据
+            - analyze_tool 工具用于分析表格数据，返回分析结果,你应该使用这个工具去分析表格数据不需要你自己分析
+            - 在收到analyze_tool的结果后你使用你需要对报告进行整理结合图形化工具生成图片并插入正文
             - generate_bar_chart 工具用于生成条形图，generate_pie_chart 工具用于生成饼图，返回图片url请你自己插入正文
             - 对于分析的数据你应该考虑调用图形工具去生成图片并插入正文
             - 请你一定要使用图片工具去生成图片，不要自己乱生成。
@@ -44,7 +46,7 @@ def get_markdown_table_agent(llm):
             """
 
         ),
-        tools=[get_table_data_to_markdown, generate_bar_chart, generate_pie_chart],
+        tools=[analyze_table, generate_bar_chart, generate_pie_chart],
         verbose=True
     )
     return markdown_table_agent

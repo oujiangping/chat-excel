@@ -5,14 +5,15 @@
 *  @FileName:   router_agent.py
 **************************************
 """
-from llama_index.core.agent.workflow import FunctionAgent, ReActAgent
+from llama_index.core.agent.workflow import FunctionAgent
 
 from core.agent import BaseAgent
+from tools.table_tool import get_table_head_data_to_markdown
 
 
 def get_router_agent(llm):
     # 分析表格干什么的代理
-    agent = ReActAgent(
+    agent = FunctionAgent(
         name="table_agent",
         llm=llm,
         description="你是一个表格分类助手",
@@ -26,6 +27,9 @@ def get_router_agent(llm):
             表格应该分为以下几种类型：
             - 正规表格（pandasql分析）
             - 非常规表格（markdown分析）
+            
+            ## 表格示例数据来源
+            - 表格示例数据来源是get_table_head_data_to_markdown工具获取的部分数据（不完整），你需要根据表格的内容，判断表格的类型。
             
             ## 正规表格说明（全部满足以下需求）
             - 所有的子表格（sheet）列都很清晰，整张表可以直接导入pandasql分析
@@ -44,7 +48,7 @@ def get_router_agent(llm):
             """
 
         ),
-        tools=[],
+        tools=[get_table_head_data_to_markdown],
         can_handoff_to=["markdown_table_agent"],
         verbose=True
     )

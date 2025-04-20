@@ -87,6 +87,14 @@ async def get_table_data_to_markdown(ctx: Context):
     return excel_table.get_markdown()
 
 
+async def get_table_head_data_to_markdown(ctx: Context):
+    """
+    获取小部分表格信息与数据并返回结果，无需参数，返回表格数据和描述给智能体进行数据分析
+    """
+    excel_table = await ctx.get("table")
+    return excel_table.get_markdown_head()
+
+
 def run_sql_queries(queries: list[str]):
     """
     批量执行 SQL 查询并返回结果。
