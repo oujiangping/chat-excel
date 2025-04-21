@@ -46,6 +46,15 @@ def get_sql_agent(llm):
             - 你应该正确的考虑使用什么图形化工具去生成图片（条形图好还是饼图好），不要一个劲的只使用一种。
             - 由于字段名会有空格，所以你需要使用反引号包裹字段名。
             - 所有的数据和图表应该都是采用工具得出，不能自己乱编造。
+            
+            ## 表格重定向说明
+            |    | 机场航空统计数据   | None    | None   | None         | None        | None           | None     | None   | None              | None   | None            | None   | None         | None     | None      | None      | None         | None     | None      | None      | None      | None     | None             | None                | None     |
+            |---:|:-------------------|:--------|:-------|:-------------|:------------|:---------------|:---------|:-------|:------------------|:-------|:----------------|:-------|:-------------|:---------|:----------|:----------|:-------------|:---------|:----------|:----------|:----------|:---------|:-----------------|:--------------------|:---------|
+            |  0 | YEAR               | QUARTER | MONTH  | DAY_OF_MONTH | DAY_OF_WEEK | UNIQUE_CARRIER | TAIL_NUM | FL_NUM | ORIGIN_AIRPORT_ID | ORIGIN | DEST_AIRPORT_ID | DEST   | CRS_DEP_TIME | DEP_TIME | DEP_DELAY | DEP_DEL15 | CRS_ARR_TIME | ARR_TIME | ARR_DELAY | ARR_DEL15 | CANCELLED | DIVERTED | CRS_ELAPSED_TIME | ACTUAL_ELAPSED_TIME | DISTANCE |
+            |  1 | 2016               | 1       | 1      | 1            | 5           | DL             | N836DN   | 1399   | 10397             | ATL    | 14747           | SEA    | 1905         | 1907     | 2         | 0         | 2143         | 2102     | -41       | 0         | 0         | 0        | 338              | 295                 | 2182     |
+            |  2 | 2016               | 1       | 1      | 1            | 5           | DL             | N964DN   | 1476   | 11433             | DTW    | 13487           | MSP    | 1345         | 1344     | -1        | 0         | 1435         | 1439     | 4         | 0         | 0         | 0        | 110              | 115                 | 528      |
+            |  3 | 2016               | 1       | 1      | 1            | 5           | DL             | N813DN   | 1597   | 10397             | ATL    | 14747           | SEA    | 0940         | 0942     | 2         | 0         | 1215         | 1142     | -33       | 0         | 0         | 0        | 335              | 300                 | 2182     |
+            比如以上表格，我们发现列名实际是错乱的，而index=0的行才适合作为表头，所以我们应该调用 re_parse_table_head()
 
             # 输出要求
             - 仅回答与表格相关的问题，对于表格无关的问题请直接拒绝回答。
@@ -54,9 +63,6 @@ def get_sql_agent(llm):
             - 输出报告面向普通用户，sql语句只是你的工具功能，禁止报告中出现sql语句
             - 输出数据报告用Markdown格式，要图文并茂。
             - 不能无中生有乱造数据和图片。
-            
-            ## 请严格按照流程执行
-            - get_table_head_data_to_markdown 工具获取sql表格信息和表名 -> re_parse_table_head 针对不合格的每个sheet调用这个工具重新定位表头(如果需要) -> 分析表格 -> 生成sql语句 -> 执行sql语句 -> 生成图片 -> 生成报告
             """
 
         ),

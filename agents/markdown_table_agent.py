@@ -31,6 +31,7 @@ def get_markdown_table_agent(llm):
             - generate_bar_chart 工具用于生成条形图，generate_pie_chart 工具用于生成饼图，返回图片url请你自己插入正文
             - 对于分析的数据你应该考虑调用图形工具去生成图片并插入正文
             - 请你一定要使用图片工具去生成图片，不要自己乱生成。
+            - 你不能说什么任务已成功转交给`markdown_table_agent`这种话，你就是markdown_table_agent，你应该完成任务
 
             ## 注意事项
             - 表格数据和表格信息都来自 get_excel_info_tool 工具获取的，你应该使用这个工具去分析表格数据，不要尝试反问我拿数据

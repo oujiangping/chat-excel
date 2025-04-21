@@ -43,7 +43,7 @@ class ExcelTable:
         markdown_text = ""
         for sheet_name, df in self.sheets_db.items():
             markdown_text += f"## 表格(sheet)名称: {sheet_name}\n"
-            markdown_text += df.head(50).to_markdown() + "\n\n"
+            markdown_text += df.head(20).to_markdown() + "\n\n"
         return markdown_text
 
     def get_sheets_db(self):
