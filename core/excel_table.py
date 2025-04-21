@@ -16,6 +16,9 @@ class ExcelTable:
         self.merge_cells = merge_cells
         self.sheets_db = load_excel_from_file(file_path, merge_cells)
 
+    def set_sheets_db(self, sheets_db):
+        self.sheets_db = sheets_db
+
     def is_regular_table(self):
         """判断是否是常规表格"""
         for sheet_name, df in self.sheets_db.items():
@@ -40,7 +43,7 @@ class ExcelTable:
         markdown_text = ""
         for sheet_name, df in self.sheets_db.items():
             markdown_text += f"## 表格(sheet)名称: {sheet_name}\n"
-            markdown_text += df.head(100).to_markdown() + "\n\n"
+            markdown_text += df.head(50).to_markdown() + "\n\n"
         return markdown_text
 
     def get_sheets_db(self):

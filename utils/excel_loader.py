@@ -13,6 +13,7 @@ def load_excel_from_file(file_path, merge_cells=False):
         sheet_names = wb.sheetnames
         for sheet_name in sheet_names:
             sheet = wb[sheet_name]
+            print("total rows:", sheet.max_row)
             data = []
             header = None
             row_index = 0
@@ -30,6 +31,7 @@ def load_excel_from_file(file_path, merge_cells=False):
         workbook = xlrd.open_workbook(file_path)
         for sheet_name in workbook.sheet_names():
             sheet = workbook.sheet_by_name(sheet_name)
+            print("total rows:", sheet.nrows)
             df = None
             # 读取表头
             header = sheet.row_values(0)

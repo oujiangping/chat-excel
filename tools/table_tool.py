@@ -58,7 +58,7 @@ def get_excel_info_head(db):
     for sheet_name, df in db.items():
         info_str = get_excel_description(df)
         head_str = df.head().to_csv(sep='\t', na_rep='nan')
-        item_str = f"表格结构描述：\n表名:{sheet_name}\n{info_str}\n\n前几行数据(不是全部数据，数据应该单独执行sql查询，请勿直接用于计算最终结果)：\n{head_str}\n\n----------------\n\n"
+        item_str = f"表格结构描述：\n表名:{sheet_name}\n{info_str}\n\n前几行数据(不是全部数据，数据应该单独执行sql查询，请勿直接用于计算最终结果，看看表头列名是不是不是第一行，如果不是你要清洗一下)：\n{head_str}\n\n----------------\n\n"
         description += item_str
     return description
 
@@ -110,7 +110,7 @@ async def run_sql_queries(ctx: Context, queries: list[str]):
             sql_result = sqldf(query, sheets_db).to_csv(sep='\t', na_rep='nan')
             results += f"query: {query}, result: {sql_result}\n\n----------"
         except Exception as e:
-            print(f"执行 SQL 查询时出错: {e}\n\n 现在我再次给你表格信息 {get_excel_info_head(sheets_db)}")
+            print(f"执行 SQL 查询时出错: {e}\n\n 现在我再次给你表格信息 {get_excel_info_head(sheets_db)} ， 请考虑是不是现在表头错了，请你重新定位表头，然后再执行sql查询")
             results += f"query: {query}, result: 执行 SQL 查询时出错。{e}\n\n----------"
     return results
 
@@ -129,3 +129,31 @@ async def get_excel_info_tool(ctx: Context):
     str: 获取表格结构和示例数据。
     """
     return get_excel_info_head(sheets_db)
+
+
+async def re_parse_table_head(ctx: Context, sheet_name: str, row_index: int):
+    """
+    根据表格信息，重新指向正确字段名所在的行的工具row_index必须大于1
+    参数:
+    sheet_name (str): 表名(sheet_name)
+    row_index (int): 重新把表头指向row_index作为有效表头所在的第N行
+    因为如果现在第1行如果就是表头，那么就不需要重新定位表头了，所以row_index必须大于1
+    """
+    excel_table = await ctx.get("table")
+    sheets_db = excel_table.get_sheets_db()
+    if row_index <= 1:
+        return "表头所在的行索引必须大于1"
+    row_index -= 2
+    if sheet_name in sheets_db:
+        df = sheets_db[sheet_name]
+        # 重新定位表头
+        df.columns = df.iloc[row_index]
+        df = df.iloc[row_index + 1:]
+        df = df.reset_index(drop=True)
+        sheets_db[sheet_name] = df
+        excel_table.set_sheets_db(sheets_db)
+        await ctx.set("table", excel_table)
+        print(f"重新定位表头成功，表名：{sheet_name}, 新表头：{df.columns.tolist()}")
+        return f"重新定位表头成功，表名：{sheet_name}, 新表头：{df.columns.tolist()}"
+
+    return "没找到sheet表格"
