@@ -14,6 +14,8 @@ async def analyze_table(ctx: Context, user_question: str) -> str:
     :return: 分析结果
     """
     excel_table = await ctx.get("table")
+    if excel_table.get_markdown().len() > 10000:
+        return "非正规表格数据过大，本工具不支持分析，请重新上传表格"
     return analyze_with_llm(excel_table.get_markdown(), user_question)
 
 
