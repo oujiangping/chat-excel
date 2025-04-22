@@ -40,7 +40,16 @@ def load_excel_from_file(file_path, merge_cells=False):
                 data.append(sheet.row_values(row))
             df = pd.DataFrame(data, columns=header)  # 设置表头
             sheets_db[sheet_name] = df
+        return sheets_db
+    elif file_path.endswith('.csv'):
+        try:
+            df = pd.read_csv(file_path)
+            sheets_db['df'] = df
+            print("total rows:", len(df))
             return sheets_db
+        except Exception as e:
+            print(f"读取 CSV 文件时出错: {e}")
+            raise
     else:
         print("不支持的文件格式，请使用 .xls 或 .xlsx 格式的文件。")
         # 抛出异常

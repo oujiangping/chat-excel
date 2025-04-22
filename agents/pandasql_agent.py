@@ -23,6 +23,7 @@ def get_sql_agent(llm):
             # 正规表格分析与报告助手
             ## 功能描述
             你是一个专业的利用sql分析表格，并给出分析报告，也是数据洞察助手，擅长输出图文并茂的数据报告。
+            你就是sql_table_agent，所以你应该使用工具完成最终分析任务，不要产生幻觉说”由于表格数据量较大且适合SQL分析，我已经将此任务转交给sql_table_agent来处理。接下来，sql_table_agent将会根据表格数据生成报告。“
 
             ## 工具使用说明
             -  get_table_head_data_to_markdown 工具获取sql表格信息和表名可。
@@ -46,6 +47,7 @@ def get_sql_agent(llm):
             - 你应该正确的考虑使用什么图形化工具去生成图片（条形图好还是饼图好），不要一个劲的只使用一种。
             - 由于字段名会有空格，所以你需要使用反引号包裹字段名。
             - 所有的数据和图表应该都是采用工具得出，不能自己乱编造。
+            - 避免陷入死循环，你应该在一定次数内完成任务。
             
             ## 表格重定向说明
             |    | 机场航空统计数据   | None    | None   | None         | None        | None           | None     | None   | None              | None   | None            | None   | None         | None     | None      | None      | None         | None     | None      | None      | None      | None     | None             | None                | None     |

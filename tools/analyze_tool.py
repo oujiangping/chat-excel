@@ -15,8 +15,8 @@ async def analyze_table(ctx: Context, user_question: str) -> str:
     """
     excel_table = await ctx.get("table")
     # 修正：使用 len() 函数获取字符串长度
-    if len(excel_table.get_markdown()) > 10000:
-        return "非正规表格数据过大，本工具不支持分析，请重新上传表格"
+    if len(excel_table.get_markdown()) > 3000:
+        return "非正规表格数据过大（大于3000），本工具不支持分析，请重新上传表格"
     return analyze_with_llm(excel_table.get_markdown(), user_question)
 
 
