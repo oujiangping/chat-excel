@@ -23,6 +23,7 @@ if "OPENAI_API_BASE" not in os.environ:
 OPENAI_API_BASE = os.environ["OPENAI_API_BASE"]
 OPENAI_MODEL_NAME = os.environ["OPENAI_MODEL_NAME"]
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+ANALYZE_LLM_MODEL_NAME = os.environ["ANALYZE_LLM_MODEL_NAME"]
 
 
 class OpenAILikeLLM(OpenAI):

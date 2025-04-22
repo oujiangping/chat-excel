@@ -104,10 +104,13 @@ async def run_sql_queries(ctx: Context, queries: list[str]):
     excel_table = await ctx.get("table")
     sheets_db = excel_table.get_sheets_db()
     results = ""
+    # 把sheets_db展开成局部变量locals()方便sqldf执行
+    for sheet_name, df in sheets_db.items():
+        locals()[sheet_name] = df
     for query in queries:
         try:
             print(f"执行 SQL 查询: {query}")
-            sql_result = sqldf(query, sheets_db).to_csv(sep='\t', na_rep='nan')
+            sql_result = sqldf(query, locals()).to_csv(sep='\t', na_rep='nan')
             results += f"query: {query}, result: {sql_result}\n\n----------"
         except Exception as e:
             print(f"执行 SQL 查询时出错: {e}\n\n 现在我再次给你表格信息 {get_excel_info_head(sheets_db)} ， 请考虑是不是现在表头错了，请你重新定位表头，然后再执行sql查询")

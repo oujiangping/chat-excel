@@ -45,7 +45,7 @@ def get_router_agent(llm):
             - 非正规表转交给markdown_table_agent处理
             - 正规表转交给sql_table_agent处理
             - 你不能直接处理和分析表格数据，因为你的任务是判断表格的类型，而不是分析表格数据。
-            - handoff的reason，请说”请你完成任务“
+            - handoff的reason，请说 具体理由 + ”请你结合历史消息和问题来正确完成任务“ + 具体的任务
             
             """
 
