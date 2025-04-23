@@ -75,7 +75,7 @@ async def analyze_question(question):
             thinking_msg = f"\n{'=' * 50}\n🤖 Agent: {current_agent}\n{'=' * 50}\n"
             print(thinking_msg)
             thinking_msg_output += f"#### 🤖执行agent: {current_agent}\n"
-            yield thinking_msg_output, ""
+            yield thinking_msg_output, final_output
         elif isinstance(event, AgentOutput):
             if event.response.content:
                 thinking_msg = f"📤 Output: {event.response.content}"
@@ -86,7 +86,9 @@ async def analyze_question(question):
                     router_output += event.response.content
             if event.tool_calls:
                 tool_msg = f"🛠️  Planning to use tools: {[call.tool_name for call in event.tool_calls]}"
-                yield tool_msg, ""
+                thinking_msg_output += f"🛠️  Planning to use tools: {[call.tool_name for call in event.tool_calls]}\n"
+                print(tool_msg)
+                yield thinking_msg_output, final_output
         elif isinstance(event, ToolCallResult):
             tool_result_msg = (
                 f"🔧 Tool Result ({event.tool_name}):\n"
@@ -95,10 +97,11 @@ async def analyze_question(question):
             )
             print(tool_result_msg)
             thinking_msg_output += f"#### 🔧工具调用结束: {event.tool_name}\n"
-            yield thinking_msg_output, ""
+            yield thinking_msg_output, final_output
         elif isinstance(event, ToolCall):
             if call_count > 10:
-                yield "🛑 出现了点异常，达到最大调用次数，停止调用工具", ""
+                thinking_msg_output += f"##### 🛑 出现了点异常，达到最大调用次数，停止调用工具 \n"
+                yield thinking_msg_output, final_output
                 return
             tool_call_msg = (
                 f"🔨 Calling Tool: {event.tool_name}\n"
@@ -106,7 +109,7 @@ async def analyze_question(question):
             )
             print(tool_call_msg)
             thinking_msg_output += f"#### 🔧工具调用开始: {event.tool_name}\n"
-            yield thinking_msg_output, ""
+            yield thinking_msg_output, final_output
     if final_output == "":
         yield "", router_output
     else:
