@@ -1,7 +1,5 @@
-import time
-
 import gradio as gr
-from llama_index.core.agent.workflow import AgentWorkflow, ToolCallResult, AgentOutput, ToolCall, AgentStream
+from llama_index.core.agent.workflow import AgentWorkflow, ToolCallResult, AgentOutput, ToolCall
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.workflow import Context
@@ -10,8 +8,8 @@ from agents.markdown_table_agent import MarkdownTableAgent
 from agents.pandasql_agent import SqlTableAgent
 from agents.router_agent import RouterAgent
 from core.excel_table import ExcelTable
-from export_tools import export_to_markdown
-from openai_like_llm import OpenAILikeLLM, OPENAI_MODEL_NAME, OPENAI_API_BASE, OPENAI_API_KEY, ANALYZE_LLM_MODEL_NAME
+from utils.export_tools import export_to_markdown
+from core.openai_like_llm import OpenAILikeLLM, OPENAI_MODEL_NAME, OPENAI_API_BASE, OPENAI_API_KEY
 from tools.table_tool import get_all_table_names
 from view.view import get_loading_view
 
@@ -62,6 +60,7 @@ async def analyze_question(question):
     )
     current_agent = None
     final_output = ""
+    router_output = ""
     async for event in handler.stream_events():
         if (
                 hasattr(event, "current_agent_name")
@@ -76,6 +75,8 @@ async def analyze_question(question):
                 print("📤 Output:", event.response.content)
                 if current_agent == "sql_table_agent" or current_agent == "markdown_table_agent":
                     final_output += event.response.content
+                else:
+                    router_output += event.response.content
             if event.tool_calls:
                 print(
                     "🛠️  Planning to use tools:",
@@ -94,6 +95,8 @@ async def analyze_question(question):
                 return "🛑 出现了点异常，达到最大调用次数，停止调用工具"
             print(f"🔨 Calling Tool: {event.tool_name}")
             print(f"  With arguments: {event.tool_kwargs}")
+    if final_output == "":
+        return router_output
     return final_output
 
 

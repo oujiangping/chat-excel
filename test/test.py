@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from llama_index.core.agent.workflow import FunctionAgent, AgentWorkflow, ToolCallResult, AgentOutput, ToolCall
@@ -6,7 +5,7 @@ from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.storage.chat_store import SimpleChatStore
 
 from core.excel_table import ExcelTable
-from openai_like_llm import OpenAILikeLLM, OPENAI_MODEL_NAME, OPENAI_API_BASE, OPENAI_API_KEY
+from core.openai_like_llm import OpenAILikeLLM, OPENAI_MODEL_NAME, OPENAI_API_BASE, OPENAI_API_KEY
 from tools.quickchart_tool import generate_bar_chart, generate_pie_chart
 
 logging.basicConfig(level="DEBUG")
@@ -83,6 +82,7 @@ async def run_agent(user_question, markdown):
 
     current_agent = None
     final_output = ""
+    router_output = ""
     async for event in handler.stream_events():
         if (
                 hasattr(event, "current_agent_name")
@@ -96,6 +96,8 @@ async def run_agent(user_question, markdown):
             if event.response.content:
                 print("📤 Output:", event.response.content)
                 final_output += event.response.content
+            else:
+                router_output += event.response.content
             if event.tool_calls:
                 print(
                     "🛠️  Planning to use tools:",

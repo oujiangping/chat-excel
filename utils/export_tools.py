@@ -21,7 +21,7 @@ def export_to_pdf(text):
     # pdf.add_font('fireflysung', '', './fonts/fireflysung.ttf', uni=True)
     # pdf.set_font('fireflysung', '', 14)
     # pdf.multi_cell(0, 10, txt=text)
-    pdf_path = "output/analysis_result.pdf"
+    pdf_path = "../output/analysis_result.pdf"
     html = markdown(text)
     # md = (
     #     MarkdownIt("commonmark", {"breaks": True, "html": True})

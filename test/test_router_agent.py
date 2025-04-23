@@ -6,16 +6,14 @@
 **************************************
 """
 import asyncio
-import logging
 
-from llama_index.core.agent.workflow import FunctionAgent, AgentWorkflow, ToolCallResult, AgentOutput, ToolCall
+from llama_index.core.agent.workflow import AgentWorkflow, ToolCallResult, AgentOutput, ToolCall
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.storage.chat_store import SimpleChatStore
 
 from agents.router_agent import RouterAgent
 from core.excel_table import ExcelTable
-from openai_like_llm import OpenAILikeLLM, OPENAI_MODEL_NAME, OPENAI_API_BASE, OPENAI_API_KEY
-from tools.quickchart_tool import generate_bar_chart, generate_pie_chart
+from core.openai_like_llm import OpenAILikeLLM, OPENAI_MODEL_NAME, OPENAI_API_BASE, OPENAI_API_KEY
 
 # logging.basicConfig(level="DEBUG")
 
