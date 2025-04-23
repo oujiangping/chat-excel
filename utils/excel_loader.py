@@ -24,6 +24,8 @@ def load_excel_from_file(file_path, merge_cells=False):
                     continue
                 data.append(row)
             df = pd.DataFrame(data, columns=header)
+            # 去除sheet_name所有空格使得表名合法
+            sheet_name = sheet_name.replace(" ", "")
             sheets_db[sheet_name] = df
         return sheets_db
     elif file_path.endswith('.xls'):
@@ -39,6 +41,8 @@ def load_excel_from_file(file_path, merge_cells=False):
             for row in range(1, sheet.nrows):  # 从第二行开始读取数据
                 data.append(sheet.row_values(row))
             df = pd.DataFrame(data, columns=header)  # 设置表头
+            # 去除sheet_name所有空格使得表名合法
+            sheet_name = sheet_name.replace(" ", "")
             sheets_db[sheet_name] = df
         return sheets_db
     elif file_path.endswith('.csv'):
