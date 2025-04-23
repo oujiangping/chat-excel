@@ -4,6 +4,8 @@ Thumbs.db
 
 .idea/
 
+.env
+
 # Python虚拟环境
 venv/
 .venv/
