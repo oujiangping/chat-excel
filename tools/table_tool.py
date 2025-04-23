@@ -110,8 +110,15 @@ async def run_sql_queries(ctx: Context, queries: list[str]):
     for query in queries:
         try:
             print(f"执行 SQL 查询: {query}")
-            sql_result = sqldf(query, sheets_db).to_csv(sep='\t', na_rep='nan')
-            results += f"query: {query}, result: {sql_result}\n\n----------"
+            sql_result = sqldf(query, sheets_db)
+            sql_result_csv = sql_result.to_csv(sep='\t', na_rep='nan')
+            # 行数过大就只返回前30行
+            if len(sql_result) > 30:
+                sql_result = sql_result[:30]
+                sql_result_csv = sql_result.to_csv(sep='\t', na_rep='nan')
+                results += f"query: {query}, error: 结果行数过大只返回30行, result: {sql_result_csv} \n\n----------"
+            else:
+                results += f"query: {query}, result: {sql_result_csv}\n\n----------"
         except Exception as e:
             print(f"执行 SQL 查询时出错: {e}\n\n 现在我再次给你表格信息 {get_excel_info_head(sheets_db)}")
             results += f"query: {query}, result: 执行 SQL 查询时出错。{e}\n\n----------"

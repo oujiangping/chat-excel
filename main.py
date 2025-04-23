@@ -36,7 +36,9 @@ async def analyze_question(question):
     global excel_table
     if not is_uploaded:
         gr.Warning("请先上传Excel文件")
-        return "请先上传Excel文件"
+        yield "请先上传Excel文件", ""
+        return
+
     router_agent = RouterAgent(llm_function)
     markdown_table_agent = MarkdownTableAgent(llm)
     sql_agent = SqlTableAgent(llm)
@@ -58,52 +60,64 @@ async def analyze_question(question):
         memory=chat_memory,
         ctx=ctx
     )
+
     current_agent = None
     final_output = ""
     router_output = ""
+    thinking_msg_output = "## 任务执行\n"
+
     async for event in handler.stream_events():
         if (
                 hasattr(event, "current_agent_name")
                 and event.current_agent_name != current_agent
         ):
             current_agent = event.current_agent_name
-            print(f"\n{'=' * 50}")
-            print(f"🤖 Agent: {current_agent}")
-            print(f"{'=' * 50}\n")
+            thinking_msg = f"\n{'=' * 50}\n🤖 Agent: {current_agent}\n{'=' * 50}\n"
+            print(thinking_msg)
+            thinking_msg_output += f"#### 🤖执行agent: {current_agent}\n"
+            yield thinking_msg_output, ""
         elif isinstance(event, AgentOutput):
             if event.response.content:
-                print("📤 Output:", event.response.content)
+                thinking_msg = f"📤 Output: {event.response.content}"
+                print(thinking_msg)
                 if current_agent == "sql_table_agent" or current_agent == "markdown_table_agent":
                     final_output += event.response.content
                 else:
                     router_output += event.response.content
             if event.tool_calls:
-                print(
-                    "🛠️  Planning to use tools:",
-                    [call.tool_name for call in event.tool_calls],
-                )
-        # elif isinstance(event, AgentStream):
-        #     if hasattr(event, "delta"):
-        #         if event.delta:
-        #             print(event.delta)
+                tool_msg = f"🛠️  Planning to use tools: {[call.tool_name for call in event.tool_calls]}"
+                yield tool_msg, ""
         elif isinstance(event, ToolCallResult):
-            print(f"🔧 Tool Result ({event.tool_name}):")
-            print(f"  Arguments: {event.tool_kwargs}")
-            print(f"  Output: {event.tool_output}")
+            tool_result_msg = (
+                f"🔧 Tool Result ({event.tool_name}):\n"
+                f"  Arguments: {event.tool_kwargs}\n"
+                f"  Output: {event.tool_output}"
+            )
+            print(tool_result_msg)
+            thinking_msg_output += f"#### 🔧工具调用结束: {event.tool_name}\n"
+            yield thinking_msg_output, ""
         elif isinstance(event, ToolCall):
             if call_count > 10:
-                return "🛑 出现了点异常，达到最大调用次数，停止调用工具"
-            print(f"🔨 Calling Tool: {event.tool_name}")
-            print(f"  With arguments: {event.tool_kwargs}")
+                yield "🛑 出现了点异常，达到最大调用次数，停止调用工具", ""
+                return
+            tool_call_msg = (
+                f"🔨 Calling Tool: {event.tool_name}\n"
+                f"  With arguments: {event.tool_kwargs}"
+            )
+            print(tool_call_msg)
+            thinking_msg_output += f"#### 🔧工具调用开始: {event.tool_name}\n"
+            yield thinking_msg_output, ""
     if final_output == "":
-        return router_output
-    return final_output
+        yield "", router_output
+    else:
+        yield "", final_output
 
 
 async def start_async_analysis(question):
     yield gr.update(visible=True), "数据处理中", gr.update(visible=True)
-    result = await analyze_question(question)
-    yield gr.update(visible=False), result, gr.update(visible=False)
+    async for thinking_output_str, result_str in analyze_question(question):
+        yield gr.update(value=thinking_output_str), result_str, gr.update(visible=True)
+    yield gr.update(visible=False), result_str, gr.update(visible=False)
 
 
 def load_excel(file):
@@ -128,7 +142,10 @@ with gr.Blocks() as excel_view:
             file_input = gr.File(label="选择 Excel 文件")
             load_output = gr.Textbox(label="文件加载结果")
             question_input = gr.Textbox(label="请输入问题", placeholder="输入你的问题")
+
         with gr.Column():
+            # 加一个模块现实实时思考产生的内容
+            thinking_output = gr.Markdown(label="思考过程")
             answer_output = gr.Markdown(label="分析结果")
             # Replace Spinner with a hidden textbox to simulate loading state
             loading_indicator = gr.Textbox(visible=False, value="Loading...")
@@ -147,7 +164,7 @@ with gr.Blocks() as excel_view:
     question_input.submit(
         fn=start_async_analysis,
         inputs=question_input,
-        outputs=[loading_message, answer_output, loading_message],
+        outputs=[thinking_output, answer_output, loading_message],
         queue=True
     )
 

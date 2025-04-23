@@ -40,7 +40,7 @@ pipreqs ./ --encoding=utf8 --force
 ```
 
 ### 设置环境变量
-在 `.env` 文件中设置以下环境变量：
+创建 `.env` 文件中设置以下环境变量：
 ```bash
 OPENAI_API_KEY=密钥
 OPENAI_API_BASE=api地址
