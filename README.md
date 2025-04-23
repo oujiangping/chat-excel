@@ -39,6 +39,15 @@ requirements.txt的生成命令:
 pipreqs ./ --encoding=utf8 --force
 ```
 
+### 设置环境变量
+在 `.env` 文件中设置以下环境变量：
+```bash
+OPENAI_API_KEY=密钥
+OPENAI_API_BASE=api地址
+OPENAI_MODEL_NAME=主大弄下
+ANALYZE_LLM_MODEL_NAME=表格分析大模型一般用deepseek-v3
+```
+
 ### 运行项目
 ```bash
 python main.py

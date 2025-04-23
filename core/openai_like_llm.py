@@ -9,6 +9,10 @@ import os
 
 from llama_index.core.base.llms.types import LLMMetadata, MessageRole
 from llama_index.llms.openai import OpenAI
+from dotenv import load_dotenv
+
+# 加载 .env 文件中的环境变量
+load_dotenv()
 
 CONTEXT_WINDOW = 128000
 
