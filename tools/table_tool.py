@@ -143,10 +143,10 @@ async def get_excel_info_tool(ctx: Context):
 
 async def re_parse_table_head(ctx: Context, sheet_name: str, row_index: int):
     """
-    重新设置表头（设置列）
+    重新设置表头（行号请看最左边的序号）
     参数:
     sheet_name (str): 表名(sheet_name)
-    row_index (int): 重新把表头指向row_index作为有效表头所在的第N行(给定表信息的最左边的行号)
+    row_index (int): 范围0-N，重新把表头指向row_index作为有效表头所在的行
     """
     excel_table = await ctx.get("table")
     sheets_db = excel_table.get_sheets_db()
