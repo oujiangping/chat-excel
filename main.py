@@ -99,7 +99,7 @@ async def analyze_question(question):
             thinking_msg_output += f"#### 🔧工具调用结束: {event.tool_name}\n"
             yield thinking_msg_output, final_output
         elif isinstance(event, ToolCall):
-            if call_count > 10:
+            if call_count > 25:
                 thinking_msg_output += f"##### 🛑 出现了点异常，达到最大调用次数，停止调用工具 \n"
                 yield thinking_msg_output, final_output
                 return
