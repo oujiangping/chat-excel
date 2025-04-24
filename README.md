@@ -1,62 +1,65 @@
-# Chat-Excel 项目
+# Chat-Excel Project
 
-## 项目介绍
-此仓库 `chat-excel` 是一个基于Python使用了LLamaIndex实现的项目，旨在借助大语言模型处理Excel数据。它能读取Excel文件，将各工作表加载为 `DataFrame`。用户可输入问题，项目会利用代理生成SQL查询，对Excel数据开展统计分析。
+## Project Introduction
+The `chat-excel` repository is a Python-based project utilizing LLamaIndex, designed to process Excel data with the help of large language models. The project can read Excel files and load worksheets as `DataFrame`. Users can input questions, and the project uses an agent to generate SQL queries to perform statistical analysis on Excel data.
 
-## 主要功能
-- 读取Excel文件，加载工作表数据。
-- 借助 `FunctionAgent` 分析用户问题，生成SQL查询。
-- 批量执行SQL查询，返回分析结果。
-- 验证表格规范性，避免不规则格式数据影响分析。
-- 支持多工作表查询。
-- 支持gradio界面，方便用户交互。
-- 支持Markdown格式导出，可以用Markdown编辑器打开和转换。、
-- 支持带有合并单元格的非正规表分析
+[中文 Chinese README](README.zh.md)
 
-## 输出示例
-截图如下:
+## Main Features
+- Read Excel files and load worksheet data.
+- Analyze user questions using `FunctionAgent` and generate SQL queries.
+- Execute SQL queries in batch and return analysis results.
+- Validate table compliance to avoid irregular format data affecting the analysis.
+- Support multi-worksheet queries.
+- Provide a Gradio interface for user interaction.
+- Support Markdown export, which can be opened and converted with Markdown editors.
+- Analyze non-standard tables with merged cells.
+
+## Output Examples
+Screenshots:
 ![gradio.png](asserts/gradio.png)
 
 ![img.png](asserts/img.png)
 
-## 核心代码
-### 主程序
-`main.py`：主程序，负责读取文件、处理用户问题。
+## Core Code
+### Main Program
+`main.py`: The main program responsible for reading files and handling user queries.
 
-### 工具函数
-定义多个工具函数，如获取表名、判断表格规范性、执行SQL查询等。
+### Utility Functions
+Defines multiple utility functions, such as getting sheet names, checking table compliance, executing SQL queries, etc.
 
-### 代理配置
-配置 `FunctionAgent`，指导其处理表格相关问题。
+### Agent Configuration
+Configures the `FunctionAgent` to handle table-related queries.
 
-## 安装与使用
-### 安装依赖
+## Installation and Usage
+### Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
-requirements.txt的生成命令:
+Command to generate `requirements.txt`:
 ```bash
 pipreqs ./ --encoding=utf8 --force
 ```
 
-### 设置环境变量
-创建 `.env` 文件中设置以下环境变量：
+### Set Environment Variables
+Create a `.env` file and set the following environment variables:
 ```bash
-OPENAI_API_KEY=密钥
-OPENAI_API_BASE=api地址
-OPENAI_MODEL_NAME=主大弄下
-ANALYZE_LLM_MODEL_NAME=表格分析大模型一般用deepseek-v3
+OPENAI_API_KEY=your_key
+OPENAI_API_BASE=api_address
+OPENAI_MODEL_NAME=primary_model
+ANALYZE_LLM_MODEL_NAME=table_analysis_model (usually deepseek-v3)
 ```
 
-### 运行项目
+### Run the Project
 ```bash
 python main.py
 ```
-## 注意事项
-- 确保Excel文件路径正确。
-- 确保文件规范性，避免数据格式错误，不允许合并单元格。
-- 确保正确设置了环境变量。
 
-## todo
-- 优化交互界面体验
-- 支持更多的功能
+## Notes
+- Ensure the Excel file path is correct.
+- Ensure the file is compliant to avoid data format errors; merged cells are not allowed.
+- Ensure environment variables are set correctly.
+
+## TODO
+- Enhance the user interface experience.
+- Support more features.
